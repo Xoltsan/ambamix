@@ -554,8 +554,26 @@ async function getChapter(param) {
 
         setCached(cacheKey, result, 300);
         return result;
+      } else {
+        // If chapter not found at this index, find the closest available chapter from series detail
+        const detail = await getComicDetail(seriesSlug);
+        if (detail && detail.chapters && detail.chapters.length > 0) {
+          const latestAvailable = detail.chapters[0];
+          if (latestAvailable && String(latestAvailable.index) !== String(chapterIndex)) {
+            return getChapter(`${seriesSlug}@${latestAvailable.index}`);
+          }
+        }
       }
     } catch (err) {
+      try {
+        const detail = await getComicDetail(seriesSlug);
+        if (detail && detail.chapters && detail.chapters.length > 0) {
+          const latestAvailable = detail.chapters[0];
+          if (latestAvailable && String(latestAvailable.index) !== String(chapterIndex)) {
+            return getChapter(`${seriesSlug}@${latestAvailable.index}`);
+          }
+        }
+      } catch {}
       console.warn(`[Voratoon Chapter Fallback to Komiku: ${param}]`, err.message);
     }
   }
