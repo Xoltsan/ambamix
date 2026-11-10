@@ -39,7 +39,7 @@ if (fs.existsSync(frontendDistPath)) {
   app.get('/', (req, res) => {
     res.json({
       status: 'success',
-      name: 'AmbaMix Comic API',
+      name: 'KitsuMix Comic API',
       version: '2.0.0',
       description: 'API & Frontend powered by Voratoon (https://v10.voratoon.com)',
       endpoints: {
@@ -75,7 +75,7 @@ app.use((err, req, res, next) => {
 
 if (require.main === module) {
   app.listen(PORT, () => {
-    console.log(`⚡ AmbaMix backend running on http://localhost:${PORT}`);
+    console.log(`⚡ KitsuMix backend running on http://localhost:${PORT}`);
     console.log(`📖 API Endpoints ready at http://localhost:${PORT}/api/home`);
   });
 }

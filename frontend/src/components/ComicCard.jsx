@@ -81,9 +81,9 @@ export default function ComicCard({ comic }) {
             width: '32px',
             height: '32px',
             borderRadius: 'var(--radius-sm)',
-            background: bookmarked ? 'var(--accent-red)' : 'rgba(11, 12, 16, 0.75)',
+            background: bookmarked ? 'var(--accent-red)' : 'rgba(4, 4, 74, 0.85)',
             backdropFilter: 'blur(4px)',
-            color: '#fff',
+            color: bookmarked ? '#020216' : '#fff',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -93,7 +93,7 @@ export default function ComicCard({ comic }) {
         >
           <Bookmark
             size={16}
-            fill={bookmarked ? '#fff' : 'none'}
+            fill={bookmarked ? '#020216' : 'none'}
             strokeWidth={2.2}
           />
         </button>
@@ -107,7 +107,7 @@ export default function ComicCard({ comic }) {
               left: 0,
               right: 0,
               padding: '1.5rem 0.5rem 0.4rem',
-              background: 'linear-gradient(to top, rgba(11,12,16,0.95) 0%, rgba(11,12,16,0.6) 60%, transparent 100%)',
+              background: 'linear-gradient(to top, rgba(2,2,22,0.95) 0%, rgba(4,4,74,0.65) 60%, transparent 100%)',
               display: 'flex',
               alignItems: 'center',
               gap: '0.35rem',

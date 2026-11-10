@@ -5,6 +5,28 @@ const comicService = require('../services/voratoonService');
 const router = express.Router();
 
 /**
+ * GET /api
+ * Returns API index and list of available endpoints
+ */
+router.get('/', (req, res) => {
+  res.json({
+    status: 'success',
+    name: 'KitsuMix Comic API',
+    version: '2.0.0',
+    description: 'API & Frontend powered by Voratoon (https://v10.voratoon.com)',
+    endpoints: {
+      home: '/api/home',
+      mangaList: '/api/manga?tipe=manga&genre=action&page=1',
+      search: '/api/search?q=solo+leveling',
+      comicDetail: '/api/comic/:slug',
+      chapterReader: '/api/chapter/:slug',
+      genres: '/api/genres',
+      proxyImage: '/api/proxy-image?url=...'
+    }
+  });
+});
+
+/**
  * Universal Image Proxy to bypass hotlink protection and CORS
  */
 router.get('/proxy-image', async (req, res) => {
@@ -13,8 +35,8 @@ router.get('/proxy-image', async (req, res) => {
     return res.status(400).json({ status: 'error', message: 'Missing url parameter' });
   }
 
-  let referer = 'https://v10.voratoon.com/';
-  let origin = 'https://v10.voratoon.com';
+  let referer = 'https://voratoon.co/';
+  let origin = 'https://voratoon.co';
   if (imageUrl.includes('komiku')) {
     referer = 'https://komiku.org/';
     origin = 'https://komiku.org';

@@ -79,7 +79,8 @@ export default function Home() {
         <section
           style={{
             position: 'relative',
-            backgroundColor: '#0d0f18',
+            backgroundColor: 'var(--bg-surface)',
+            background: 'linear-gradient(135deg, rgba(4, 4, 74, 0.98) 0%, rgba(0, 6, 117, 0.9) 55%, rgba(0, 82, 255, 0.3) 100%)',
             borderBottom: '1px solid var(--border-subtle)',
             overflow: 'hidden'
           }}
@@ -120,8 +121,8 @@ export default function Home() {
                   gap: '0.4rem',
                   padding: '0.3rem 0.75rem',
                   borderRadius: 'var(--radius-xs)',
-                  background: 'rgba(255, 70, 85, 0.18)',
-                  border: '1px solid rgba(255, 70, 85, 0.4)',
+                  background: 'rgba(0, 231, 255, 0.15)',
+                  border: '1px solid rgba(0, 231, 255, 0.45)',
                   color: 'var(--accent-red)',
                   fontSize: '0.78rem',
                   fontWeight: 700,
@@ -199,7 +200,7 @@ export default function Home() {
         <div className="container" style={{ marginTop: '1.5rem' }}>
           <div
             style={{
-              background: 'linear-gradient(90deg, #181c2b 0%, #131622 100%)',
+              background: 'linear-gradient(90deg, #04044a 0%, #000675 60%, rgba(0, 82, 255, 0.4) 100%)',
               border: '1px solid var(--border-medium)',
               borderRadius: 'var(--radius-md)',
               padding: '0.85rem 1.25rem',
@@ -279,7 +280,7 @@ export default function Home() {
                     fontSize: '0.82rem',
                     fontWeight: 700,
                     background: typeFilter === tab.id ? 'var(--accent-red)' : 'var(--bg-surface)',
-                    color: typeFilter === tab.id ? '#fff' : 'var(--text-secondary)',
+                    color: typeFilter === tab.id ? '#020216' : 'var(--text-secondary)',
                     border: '1px solid',
                     borderColor: typeFilter === tab.id ? 'var(--accent-red)' : 'var(--border-subtle)',
                     whiteSpace: 'nowrap',
@@ -326,7 +327,7 @@ export default function Home() {
                       fontWeight: 700,
                       borderRadius: 'var(--radius-xs)',
                       background: rankTab === 'harian' ? 'var(--accent-red)' : 'none',
-                      color: rankTab === 'harian' ? '#fff' : 'var(--text-muted)'
+                      color: rankTab === 'harian' ? '#020216' : 'var(--text-muted)'
                     }}
                   >
                     Harian
@@ -339,7 +340,7 @@ export default function Home() {
                       fontWeight: 700,
                       borderRadius: 'var(--radius-xs)',
                       background: rankTab === 'mingguan' ? 'var(--accent-red)' : 'none',
-                      color: rankTab === 'mingguan' ? '#fff' : 'var(--text-muted)'
+                      color: rankTab === 'mingguan' ? '#020216' : 'var(--text-muted)'
                     }}
                   >
                     Mingguan

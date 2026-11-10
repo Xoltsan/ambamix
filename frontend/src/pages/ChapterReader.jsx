@@ -133,14 +133,14 @@ export default function ChapterReader() {
   const currentImage = images[pageIndex];
 
   return (
-    <div style={{ backgroundColor: '#07080b', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ backgroundColor: 'var(--bg-primary)', minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
       {/* 1. Sticky Top Control Bar */}
       <nav
         style={{
           position: 'sticky',
           top: 0,
           zIndex: 90,
-          backgroundColor: 'rgba(13, 15, 23, 0.94)',
+          backgroundColor: 'rgba(4, 4, 74, 0.92)',
           backdropFilter: 'blur(8px)',
           borderBottom: '1px solid var(--border-subtle)',
           padding: '0.65rem 1rem'

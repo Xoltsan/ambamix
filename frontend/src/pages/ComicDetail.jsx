@@ -256,7 +256,7 @@ export default function ComicDetail() {
                   className="btn btn-secondary"
                   style={{
                     padding: '0.75rem 1.25rem',
-                    background: bookmarked ? 'rgba(255, 70, 85, 0.15)' : 'var(--bg-surface)',
+                    background: bookmarked ? 'var(--accent-red-light)' : 'var(--bg-surface)',
                     borderColor: bookmarked ? 'var(--accent-red)' : 'var(--border-subtle)',
                     color: bookmarked ? 'var(--accent-red)' : 'var(--text-primary)'
                   }}

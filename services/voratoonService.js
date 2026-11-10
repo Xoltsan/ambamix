@@ -1,15 +1,14 @@
 const axios = require('axios');
 const jpeg = require('jpeg-js');
+const komikuService = require('./komikuService');
 
-const VORA_API = 'https://api.voratoon.com';
-const ORIGIN_URL = 'https://v10.voratoon.com';
+const VORA_ORIGIN = 'https://v10.voratoon.com';
 
 const DEFAULT_HEADERS = {
   'User-Agent':
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-  'Referer': 'https://v10.voratoon.com/',
-  'Origin': 'https://v10.voratoon.com',
-  'Accept': 'application/json, text/plain, */*'
+  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+  'Accept-Language': 'id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7'
 };
 
 // Known perceptual dHash (size=16, 256 bits) for Voratoon promotional / credit banners
@@ -61,17 +60,13 @@ async function isWatermarkImageUrl(url) {
   if (!url || typeof url !== 'string') return false;
   if (wmCache.has(url)) return wmCache.get(url);
 
-  const lower = url.toLowerCase();
-  // 1. Filename keyword checks
-  if (/(marathon|rekrut|watermark|credit|iklan|999-rekrut|999\.jpg)/i.test(lower)) {
-    wmCache.set(url, true);
-    return true;
-  }
-
-  // 2. Fetch and test dHash against known Voratoon promotional banners
   try {
     const r = await axios.get(url, {
-      headers: DEFAULT_HEADERS,
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Referer': 'https://voratoon.co/'
+      },
       responseType: 'arraybuffer',
       timeout: 4000
     });
@@ -88,7 +83,7 @@ async function isWatermarkImageUrl(url) {
         }
       }
     }
-  } catch (err) {
+  } catch {
     // If request fails or times out, do not remove to prevent false positives
   }
 
@@ -130,6 +125,43 @@ function setCached(key, data, ttlSeconds = 60) {
   cache.set(key, { data, expiry: Date.now() + ttlSeconds * 1000 });
 }
 
+/**
+ * Extracts Next.js RSC initialData from Voratoon HTML pages
+ */
+function extractInitialData(html) {
+  if (!html || typeof html !== 'string') return null;
+  const matches = [...html.matchAll(/self\.__next_f\.push\(\[1,"([\s\S]*?)"\]\)/g)];
+  for (const m of matches) {
+    const raw = m[1];
+    if (raw.includes('initialData')) {
+      try {
+        const unescaped = JSON.parse(`"${raw}"`);
+        const idx = unescaped.indexOf('"initialData":');
+        if (idx !== -1) {
+          let depth = 0;
+          let start = unescaped.indexOf('{', idx);
+          let end = -1;
+          for (let i = start; i < unescaped.length; i++) {
+            if (unescaped[i] === '{') depth++;
+            else if (unescaped[i] === '}') {
+              depth--;
+              if (depth === 0) {
+                end = i + 1;
+                break;
+              }
+            }
+          }
+          if (end !== -1) {
+            const jsonStr = unescaped.substring(start, end);
+            return JSON.parse(jsonStr);
+          }
+        }
+      } catch (err) {}
+    }
+  }
+  return null;
+}
+
 function normalizeFormat(format = '') {
   const f = (format || '').toLowerCase();
   if (f === 'manhwa') return 'Manhwa';
@@ -166,6 +198,20 @@ function normalizeSeriesItem(item) {
   };
 }
 
+// In-memory global catalog cache to store known series across pages
+const catalogMap = new Map();
+function storeInCatalog(items) {
+  if (!Array.isArray(items)) return;
+  for (const it of items) {
+    if (it && (it.slug || it.data?.slug)) {
+      const normalized = normalizeSeriesItem(it);
+      if (normalized && normalized.slug) {
+        catalogMap.set(normalized.slug, normalized);
+      }
+    }
+  }
+}
+
 /**
  * 1. GET HOME
  * Fetches popular today, popular week, and latest series from Voratoon
@@ -175,38 +221,44 @@ async function getHome() {
   const cached = getCached(cacheKey);
   if (cached) return cached;
 
-  const [popTodayRes, popWeekRes, latestRes] = await Promise.all([
-    axios.get(`${VORA_API}/popular/today`, { headers: DEFAULT_HEADERS, timeout: 12000 }).catch(() => ({ data: { data: [] } })),
-    axios.get(`${VORA_API}/popular/week`, { headers: DEFAULT_HEADERS, timeout: 12000 }).catch(() => ({ data: { data: [] } })),
-    axios.get(`${VORA_API}/series?page=1&limit=24`, { headers: DEFAULT_HEADERS, timeout: 12000 }).catch(() => ({ data: { data: [] } }))
-  ]);
+  try {
+    const res = await axios.get(`${VORA_ORIGIN}/`, {
+      headers: DEFAULT_HEADERS,
+      timeout: 12000
+    });
+    const initial = extractInitialData(res.data);
+    if (!initial) throw new Error('Failed to parse Voratoon home data');
 
-  const rankHarian = (popTodayRes.data?.data || []).map((item, idx) => {
-    const normalized = normalizeSeriesItem(item);
-    return {
+    storeInCatalog(initial.popular);
+    storeInCatalog(initial.updates);
+    storeInCatalog(initial.banner);
+    storeInCatalog(initial.newSeries);
+    storeInCatalog(initial.completed);
+
+    const rankHarian = (initial.popular || []).map((item, idx) => ({
       rank: idx + 1,
-      ...normalized
-    };
-  });
+      ...normalizeSeriesItem(item)
+    }));
 
-  const rankMingguan = (popWeekRes.data?.data || []).map((item, idx) => {
-    const normalized = normalizeSeriesItem(item);
-    return {
+    const rankMingguan = (initial.banner || []).map((item, idx) => ({
       rank: idx + 1,
-      ...normalized
+      ...normalizeSeriesItem(item)
+    }));
+
+    const terbaru = (initial.updates || []).map(normalizeSeriesItem);
+
+    const result = {
+      rankHarian,
+      rankMingguan,
+      terbaru
     };
-  });
 
-  const terbaru = (latestRes.data?.data || []).map((item) => normalizeSeriesItem(item));
-
-  const result = {
-    rankHarian,
-    rankMingguan,
-    terbaru
-  };
-
-  setCached(cacheKey, result, 60);
-  return result;
+    setCached(cacheKey, result, 60);
+    return result;
+  } catch (err) {
+    console.warn('[Voratoon Home Fallback to Komiku]', err.message);
+    return komikuService.getHome();
+  }
 }
 
 /**
@@ -218,33 +270,50 @@ async function getMangaList(query = {}) {
   const cached = getCached(cacheKey);
   if (cached) return cached;
 
-  const params = new URLSearchParams({
-    page: String(page),
-    limit: String(limit)
-  });
-
-  if (tipe) params.append('format', tipe.toLowerCase());
-  if (status) {
-    if (status.toLowerCase().includes('end') || status.toLowerCase().includes('tamat')) {
-      params.append('status', 'completed');
-    } else {
-      params.append('status', 'ongoing');
-    }
+  // Ensure catalog has items from browse page
+  if (catalogMap.size < 30) {
+    try {
+      const res = await axios.get(`${VORA_ORIGIN}/browse`, { headers: DEFAULT_HEADERS, timeout: 12000 });
+      const initial = extractInitialData(res.data);
+      if (initial && initial.series) {
+        storeInCatalog(initial.series);
+      }
+    } catch {}
   }
-  if (search) params.append('title', search);
 
-  const res = await axios.get(`${VORA_API}/series?${params.toString()}`, {
-    headers: DEFAULT_HEADERS,
-    timeout: 12000
-  });
+  let allItems = Array.from(catalogMap.values());
 
-  const rawList = res.data?.data || [];
-  const items = rawList.map((item) => normalizeSeriesItem(item));
+  if (tipe) {
+    allItems = allItems.filter((it) => it.type.toLowerCase() === tipe.toLowerCase());
+  }
+  if (search) {
+    const s = search.toLowerCase();
+    allItems = allItems.filter((it) => it.title.toLowerCase().includes(s) || it.slug.toLowerCase().includes(s));
+  }
+  if (genre) {
+    const g = genre.toLowerCase();
+    allItems = allItems.filter((it) => it.genres.some((gen) => gen.toLowerCase().includes(g)));
+  }
+
+  if (allItems.length === 0) {
+    try {
+      return await komikuService.getMangaList(query);
+    } catch {}
+  }
+
+  const startIndex = (parseInt(page, 10) - 1) * parseInt(limit, 10);
+  const pagedItems = allItems.slice(startIndex, startIndex + parseInt(limit, 10));
+
+  if (pagedItems.length === 0) {
+    try {
+      return await komikuService.getMangaList(query);
+    } catch {}
+  }
 
   const result = {
     page: parseInt(page, 10),
-    data: items,
-    hasMore: items.length >= parseInt(limit, 10)
+    data: pagedItems,
+    hasMore: startIndex + parseInt(limit, 10) < allItems.length
   };
 
   setCached(cacheKey, result, 60);
@@ -256,164 +325,144 @@ async function getMangaList(query = {}) {
  */
 async function searchManga(keyword = '') {
   if (!keyword || !keyword.trim()) return [];
-
-  let clean = keyword.trim();
-  let extractedSlug = '';
-
-  // If user pasted a URL e.g. https://v10.voratoon.com/series/kaoru-hana-wa-rin-to-saku
-  const urlMatch = clean.match(/\/series\/([^/?#]+)/);
-  if (urlMatch) {
-    extractedSlug = urlMatch[1];
-    clean = extractedSlug.replace(/-/g, ' ');
-  } else if (/^[a-z0-9]+(-[a-z0-9]+)+$/i.test(clean)) {
-    extractedSlug = clean.toLowerCase();
-  }
-
-  const cacheKey = `vora_search_${clean.toLowerCase()}_${extractedSlug}`;
+  const clean = keyword.trim().toLowerCase();
+  const cacheKey = `vora_search_${clean}`;
   const cached = getCached(cacheKey);
   if (cached) return cached;
 
-  const promises = [
-    axios.get(`${VORA_API}/series?title=${encodeURIComponent(clean)}&limit=30`, {
-      headers: DEFAULT_HEADERS,
-      timeout: 12000
-    }).catch(() => ({ data: { data: [] } }))
-  ];
+  const results = [];
+  const seenSlugs = new Set();
 
-  if (extractedSlug) {
-    promises.push(
-      axios.get(`${VORA_API}/series?slug=${encodeURIComponent(extractedSlug)}`, {
-        headers: DEFAULT_HEADERS,
-        timeout: 12000
-      }).catch(() => ({ data: { data: [] } }))
-    );
-  }
-
-  const responses = await Promise.all(promises);
-  const combined = [];
-  const seenIds = new Set();
-
-  for (const r of responses) {
-    const list = r.data?.data || [];
-    for (const item of list) {
-      if (item && item.id && !seenIds.has(item.id)) {
-        seenIds.add(item.id);
-        combined.push(normalizeSeriesItem(item));
+  // 1. Search in local catalog
+  for (const item of catalogMap.values()) {
+    if (
+      item.title.toLowerCase().includes(clean) ||
+      item.slug.toLowerCase().includes(clean)
+    ) {
+      if (!seenSlugs.has(item.slug)) {
+        seenSlugs.add(item.slug);
+        results.push(item);
       }
     }
   }
 
-  // Prioritize exact or prefix matches
-  combined.sort((a, b) => {
-    const aTitle = (a.title || '').toLowerCase();
-    const bTitle = (b.title || '').toLowerCase();
-    const target = clean.toLowerCase();
-    if (aTitle === target) return -1;
-    if (bTitle === target) return 1;
-    if (aTitle.startsWith(target)) return -1;
-    if (bTitle.startsWith(target)) return 1;
-    return 0;
-  });
+  // 2. Direct probe if keyword looks like slug
+  const probeSlug = clean.replace(/[^a-z0-9]+/g, '-');
+  if (!seenSlugs.has(probeSlug) && probeSlug.length > 2) {
+    try {
+      const detail = await getComicDetail(probeSlug);
+      if (detail && !seenSlugs.has(detail.slug)) {
+        seenSlugs.add(detail.slug);
+        results.push({
+          id: detail.slug,
+          title: detail.title,
+          slug: detail.slug,
+          thumbnail: detail.thumbnail,
+          type: detail.type,
+          info: `${detail.type} • ${detail.rating ? `${detail.rating}/10` : ''}`,
+          rating: detail.rating,
+          totalChapters: detail.chapters?.length || null,
+          latestChapter: detail.latestChapter?.title || '',
+          latestChapterSlug: detail.latestChapter?.slug || '',
+          description: detail.synopsis || '',
+          genres: detail.genres.map((g) => g.name)
+        });
+      }
+    } catch {}
+  }
 
-  setCached(cacheKey, combined, 60);
-  return combined;
+  // 3. Fallback to Komiku if results are few
+  if (results.length === 0) {
+    try {
+      const kRes = await komikuService.searchManga(keyword);
+      for (const k of kRes) {
+        if (!seenSlugs.has(k.slug)) {
+          seenSlugs.add(k.slug);
+          results.push(k);
+        }
+      }
+    } catch {}
+  }
+
+  setCached(cacheKey, results, 60);
+  return results;
 }
 
 /**
  * 4. GET COMIC DETAIL
  */
 async function getComicDetail(slug) {
-  if (!slug) throw new Error('Comic slug is required');
+  if (!slug) throw new Error('Missing slug');
   const cacheKey = `vora_detail_${slug}`;
   const cached = getCached(cacheKey);
   if (cached) return cached;
 
-  // 1. Fetch series metadata
-  let seriesItem = null;
-  const searchRes = await axios.get(`${VORA_API}/series?slug=${encodeURIComponent(slug)}`, {
-    headers: DEFAULT_HEADERS,
-    timeout: 12000
-  });
-
-  if (searchRes.data?.data?.length > 0) {
-    seriesItem = searchRes.data.data[0];
-  } else {
-    // Fallback: search by title / slug
-    const fallbackRes = await axios.get(`${VORA_API}/series?search=${encodeURIComponent(slug)}&limit=1`, {
+  try {
+    const res = await axios.get(`${VORA_ORIGIN}/series/${encodeURIComponent(slug)}`, {
       headers: DEFAULT_HEADERS,
       timeout: 12000
     });
-    seriesItem = fallbackRes.data?.data?.[0];
-  }
+    const initial = extractInitialData(res.data);
+    if (!initial || !initial.series || !initial.series[0]) {
+      throw new Error(`Comic not found on Voratoon: ${slug}`);
+    }
 
-  if (!seriesItem) {
-    throw new Error(`Comic not found: ${slug}`);
-  }
+    const seriesItem = initial.series[0];
+    const sData = seriesItem.data || seriesItem;
+    const rawChapters = initial.chapters || [];
 
-  const sData = seriesItem.data;
-  const seriesId = seriesItem.id;
-  const realSlug = sData.slug || slug;
+    storeInCatalog([seriesItem]);
 
-  // 2. Fetch chapters list
-  const chaptersRes = await axios.get(`${VORA_API}/series/${realSlug}/chapters`, {
-    headers: DEFAULT_HEADERS,
-    timeout: 12000
-  }).catch(async () => {
-    // Fallback using seriesId
-    return axios.get(`${VORA_API}/series/${seriesId}/chapters`, {
-      headers: DEFAULT_HEADERS,
-      timeout: 12000
+    const chapters = rawChapters.map((ch) => {
+      const chData = ch.data || {};
+      const index = ch.chapterIndex !== undefined ? ch.chapterIndex : chData.index;
+      const chTitle = chData.title ? `Chapter ${index}: ${chData.title}` : `Chapter ${index}`;
+      const date = ch.createdAt ? new Date(ch.createdAt).toLocaleDateString('id-ID') : '';
+
+      return {
+        title: chTitle,
+        index,
+        slug: `${slug}@${index}`,
+        date
+      };
     });
-  });
 
-  const rawChapters = chaptersRes.data?.data || [];
-  
-  // Format chapters
-  const chapters = rawChapters.map((ch) => {
-    const chData = ch.data || {};
-    const index = chData.index !== undefined ? chData.index : ch.chapterIndex;
-    const chTitle = chData.title ? `Chapter ${index}: ${chData.title}` : `Chapter ${index}`;
-    const date = ch.createdAt ? new Date(ch.createdAt).toLocaleDateString('id-ID') : '';
+    const genres = (sData.genres || []).map((g) => ({
+      name: g.data?.name || g.name || '',
+      slug: (g.data?.name || g.name || '').toLowerCase().replace(/\s+/g, '-')
+    }));
 
-    return {
-      title: chTitle,
-      index,
-      slug: `${realSlug}@${index}`,
-      date
+    const detail = {
+      title: sData.title || slug,
+      altTitle: sData.nativeTitle || '',
+      slug,
+      thumbnail: sData.coverImage || sData.backgroundImage || '',
+      backgroundImage: sData.backgroundImage || sData.coverImage || '',
+      synopsis: sData.synopsis || '',
+      type: normalizeFormat(sData.format),
+      status: sData.status === 'completed' ? 'Tamat' : 'Ongoing',
+      author: sData.author || 'Unknown',
+      rating: sData.rating || 8.0,
+      tema: sData.animeAdaptation ? 'Adaptasi Anime' : '',
+      genres,
+      firstChapter: chapters.length > 0 ? {
+        title: chapters[chapters.length - 1].title,
+        slug: chapters[chapters.length - 1].slug
+      } : null,
+      latestChapter: chapters.length > 0 ? {
+        title: chapters[0].title,
+        slug: chapters[0].slug
+      } : null,
+      chapters
     };
-  });
 
-  const genres = (sData.genres || []).map((g) => ({
-    name: g.data?.name || g.name || '',
-    slug: (g.data?.name || g.name || '').toLowerCase().replace(/\s+/g, '-')
-  }));
-
-  const detail = {
-    title: sData.title || realSlug,
-    altTitle: sData.nativeTitle || '',
-    slug: realSlug,
-    thumbnail: sData.coverImage || sData.backgroundImage || '',
-    backgroundImage: sData.backgroundImage || sData.coverImage || '',
-    synopsis: sData.synopsis || '',
-    type: normalizeFormat(sData.format),
-    status: sData.status === 'completed' ? 'Tamat' : 'Ongoing',
-    author: sData.author || 'Unknown',
-    rating: sData.rating || 8.0,
-    tema: sData.animeAdaptation ? 'Adaptasi Anime' : '',
-    genres,
-    firstChapter: chapters.length > 0 ? {
-      title: chapters[chapters.length - 1].title,
-      slug: chapters[chapters.length - 1].slug
-    } : null,
-    latestChapter: chapters.length > 0 ? {
-      title: chapters[0].title,
-      slug: chapters[0].slug
-    } : null,
-    chapters
-  };
-
-  setCached(cacheKey, detail, 120);
-  return detail;
+    setCached(cacheKey, detail, 120);
+    return detail;
+  } catch (err) {
+    // If not found or failed on Voratoon, fallback to Komiku
+    console.warn(`[Voratoon Detail Fallback to Komiku: ${slug}]`, err.message);
+    return komikuService.getComicDetail(slug);
+  }
 }
 
 /**
@@ -421,7 +470,7 @@ async function getComicDetail(slug) {
  * Handles: slug@chapterIndex or seriesSlug/chapterIndex
  */
 async function getChapter(param) {
-  if (!param) throw new Error('Chapter parameter is required');
+  if (!param) throw new Error('Missing chapter parameter');
   const cacheKey = `vora_chapter_${param}`;
   const cached = getCached(cacheKey);
   if (cached) return cached;
@@ -438,84 +487,81 @@ async function getChapter(param) {
     seriesSlug = parts[0];
     chapterIndex = parts[1];
   } else {
-    // If slug is e.g. "some-manga-chapter-10"
     const match = param.match(/(.+)-chapter-(\d+(\.\d+)?)$/);
     if (match) {
       seriesSlug = match[1];
       chapterIndex = match[2];
-    } else {
-      seriesSlug = param;
-      chapterIndex = '1';
     }
   }
 
-  // 1. Fetch chapter reader data
-  const url = `${VORA_API}/series/${encodeURIComponent(seriesSlug)}/chapters/${encodeURIComponent(chapterIndex)}`;
-  const res = await axios.get(url, { headers: DEFAULT_HEADERS, timeout: 15000 });
-  const rawChapterData = res.data?.data?.data || {};
+  if (seriesSlug && chapterIndex) {
+    try {
+      const res = await axios.get(
+        `${VORA_ORIGIN}/series/${encodeURIComponent(seriesSlug)}/chapter/${encodeURIComponent(chapterIndex)}`,
+        { headers: DEFAULT_HEADERS, timeout: 15000 }
+      );
+      const initial = extractInitialData(res.data);
+      if (initial && initial.chapter) {
+        const rawChapterData = initial.chapter.data || {};
+        const rawImages = rawChapterData.images || [];
 
-  const rawImages = rawChapterData.images || [];
-  // Filter out Voratoon watermark / credit promotional banners
-  const cleanImages = await filterWatermarkImages(rawImages);
-  const images = cleanImages.map((imgUrl, i) => ({
-    index: i + 1,
-    url: imgUrl,
-    proxiedUrl: `/api/proxy-image?url=${encodeURIComponent(imgUrl)}`
-  }));
+        const cleanImages = await filterWatermarkImages(rawImages);
+        const images = cleanImages.map((imgUrl, i) => ({
+          index: i + 1,
+          url: imgUrl,
+          proxiedUrl: `/api/proxy-image?url=${encodeURIComponent(imgUrl)}`
+        }));
 
-  // 2. Fetch all chapters of series to calculate previous and next chapters
-  let prevChapterSlug = '';
-  let nextChapterSlug = '';
-  let comicTitle = seriesSlug;
+        const chList = initial.chapters || [];
+        const sorted = [...chList].sort((a, b) => {
+          const idxA = parseFloat(a.chapterIndex ?? a.data?.index ?? 0);
+          const idxB = parseFloat(b.chapterIndex ?? b.data?.index ?? 0);
+          return idxA - idxB;
+        });
 
-  try {
-    const chListRes = await axios.get(`${VORA_API}/series/${encodeURIComponent(seriesSlug)}/chapters`, {
-      headers: DEFAULT_HEADERS,
-      timeout: 10000
-    });
-    const chList = chListRes.data?.data || [];
-    
-    // Sort ascending by index to determine prev and next
-    const sorted = [...chList].sort((a, b) => {
-      const idxA = parseFloat(a.data?.index ?? a.chapterIndex ?? 0);
-      const idxB = parseFloat(b.data?.index ?? b.chapterIndex ?? 0);
-      return idxA - idxB;
-    });
+        const currentNum = parseFloat(chapterIndex);
+        const currentIndexInSorted = sorted.findIndex((item) => {
+          const idx = parseFloat(item.chapterIndex ?? item.data?.index ?? 0);
+          return idx === currentNum;
+        });
 
-    const currentNum = parseFloat(chapterIndex);
-    const currentIndexInSorted = sorted.findIndex((item) => {
-      const idx = parseFloat(item.data?.index ?? item.chapterIndex ?? 0);
-      return idx === currentNum;
-    });
+        let prevChapterSlug = '';
+        let nextChapterSlug = '';
+        if (currentIndexInSorted > 0) {
+          const prevItem = sorted[currentIndexInSorted - 1];
+          const prevIdx = prevItem.chapterIndex ?? prevItem.data?.index;
+          prevChapterSlug = `${seriesSlug}@${prevIdx}`;
+        }
+        if (currentIndexInSorted >= 0 && currentIndexInSorted < sorted.length - 1) {
+          const nextItem = sorted[currentIndexInSorted + 1];
+          const nextIdx = nextItem.chapterIndex ?? nextItem.data?.index;
+          nextChapterSlug = `${seriesSlug}@${nextIdx}`;
+        }
 
-    if (currentIndexInSorted > 0) {
-      const prevItem = sorted[currentIndexInSorted - 1];
-      const prevIdx = prevItem.data?.index ?? prevItem.chapterIndex;
-      prevChapterSlug = `${seriesSlug}@${prevIdx}`;
+        const sItem = initial.series?.[0];
+        const comicTitle = sItem?.data?.title || seriesSlug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+
+        const result = {
+          title: `Chapter ${chapterIndex}`,
+          chapterSlug: `${seriesSlug}@${chapterIndex}`,
+          comicTitle,
+          comicSlug: seriesSlug,
+          prevChapterSlug,
+          nextChapterSlug,
+          totalImages: images.length,
+          images
+        };
+
+        setCached(cacheKey, result, 300);
+        return result;
+      }
+    } catch (err) {
+      console.warn(`[Voratoon Chapter Fallback to Komiku: ${param}]`, err.message);
     }
-
-    if (currentIndexInSorted >= 0 && currentIndexInSorted < sorted.length - 1) {
-      const nextItem = sorted[currentIndexInSorted + 1];
-      const nextIdx = nextItem.data?.index ?? nextItem.chapterIndex;
-      nextChapterSlug = `${seriesSlug}@${nextIdx}`;
-    }
-  } catch {
-    // Non-fatal if chapter list fails
   }
 
-  const result = {
-    title: `Chapter ${chapterIndex}`,
-    chapterSlug: `${seriesSlug}@${chapterIndex}`,
-    comicTitle: comicTitle.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
-    comicSlug: seriesSlug,
-    prevChapterSlug,
-    nextChapterSlug,
-    totalImages: images.length,
-    images
-  };
-
-  setCached(cacheKey, result, 300);
-  return result;
+  // Fallback to Komiku
+  return komikuService.getChapter(param);
 }
 
 /**
@@ -527,30 +573,32 @@ async function getGenres() {
   if (cached) return cached;
 
   try {
-    const res = await axios.get(`${VORA_API}/genres`, { headers: DEFAULT_HEADERS, timeout: 10000 });
-    const rawList = res.data?.data || [];
-    const genres = rawList.map((g) => ({
-      id: g.id,
-      name: g.data?.name || g.name || '',
-      slug: (g.data?.name || g.name || '').toLowerCase().replace(/\s+/g, '-')
-    }));
-    setCached(cacheKey, genres, 3600);
-    return genres;
-  } catch {
-    return [
-      { slug: 'action', name: 'Action' },
-      { slug: 'adventure', name: 'Adventure' },
-      { slug: 'comedy', name: 'Comedy' },
-      { slug: 'drama', name: 'Drama' },
-      { slug: 'fantasy', name: 'Fantasy' },
-      { slug: 'martial-arts', name: 'Martial Arts' },
-      { slug: 'romance', name: 'Romance' },
-      { slug: 'shounen', name: 'Shounen' },
-      { slug: 'webtoons', name: 'Webtoons' },
-      { slug: 'seinen', name: 'Seinen' },
-      { slug: 'isekai', name: 'Isekai' }
-    ];
-  }
+    const res = await axios.get(`${VORA_ORIGIN}/browse`, { headers: DEFAULT_HEADERS, timeout: 12000 });
+    const initial = extractInitialData(res.data);
+    if (initial && initial.genres && initial.genres.length > 0) {
+      const genres = initial.genres.map((g) => ({
+        id: g.id,
+        name: g.data?.name || g.name || '',
+        slug: (g.data?.name || g.name || '').toLowerCase().replace(/\s+/g, '-')
+      }));
+      setCached(cacheKey, genres, 3600);
+      return genres;
+    }
+  } catch {}
+
+  return [
+    { slug: 'action', name: 'Action' },
+    { slug: 'adventure', name: 'Adventure' },
+    { slug: 'comedy', name: 'Comedy' },
+    { slug: 'drama', name: 'Drama' },
+    { slug: 'fantasy', name: 'Fantasy' },
+    { slug: 'martial-arts', name: 'Martial Arts' },
+    { slug: 'romance', name: 'Romance' },
+    { slug: 'shounen', name: 'Shounen' },
+    { slug: 'webtoons', name: 'Webtoons' },
+    { slug: 'seinen', name: 'Seinen' },
+    { slug: 'isekai', name: 'Isekai' }
+  ];
 }
 
 module.exports = {

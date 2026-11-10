@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { BookOpen, ShieldAlert, Heart } from 'lucide-react';
+import KitsuLogo from './KitsuLogo';
 
 export default function Footer() {
   return (
@@ -23,28 +24,14 @@ export default function Footer() {
         >
           {/* Brand Col */}
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.9rem' }}>
-              <div
-                style={{
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: 'var(--radius-sm)',
-                  background: 'var(--accent-red)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#fff',
-                  fontWeight: 900
-                }}
-              >
-                A
-              </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '0.9rem' }}>
+              <KitsuLogo size={32} />
               <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff' }}>
-                Amba<span style={{ color: 'var(--accent-red)' }}>Mix</span>
+                Kitsu<span style={{ color: 'var(--accent-red)' }}>Mix</span>
               </span>
             </div>
             <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>
-              Platform pembaca komik online modern tercepat dengan data lengkap Manga, Manhwa, dan Manhua berbahasa Indonesia bersumber dari VoraToon (v10.voratoon.com).
+              Platform pembaca komik online modern bertema Kitsune dengan koleksi lengkap Manga, Manhwa, dan Manhua berbahasa Indonesia.
             </p>
           </div>
 
@@ -127,7 +114,7 @@ export default function Footer() {
               Disclaimer
             </h4>
             <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
-              AmbaMix tidak meng-host file komik apa pun di server kami. Semua komik, gambar, dan materi berhak cipta merupakan hak milik dari penerbit dan kreator aslinya.
+              KitsuMix tidak meng-host file komik apa pun di server kami. Semua komik, gambar, dan materi berhak cipta merupakan hak milik dari penerbit dan kreator aslinya.
             </p>
           </div>
         </div>
@@ -147,7 +134,7 @@ export default function Footer() {
           }}
         >
           <div>
-            © {new Date().getFullYear()} <strong>AmbaMix</strong>. All rights reserved. Powered by Komiku.org data.
+            © {new Date().getFullYear()} <strong>KitsuMix</strong>. All rights reserved.
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
             Dibuat untuk para pecinta komik Indonesia

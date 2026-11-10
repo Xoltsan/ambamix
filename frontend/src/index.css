@@ -1,35 +1,48 @@
 /* ==========================================================================
-   AMBAMIX DESIGN SYSTEM (VANILLA CSS)
-   Manga Editorial Aesthetic - High Contrast, Deep Ink & Precision
+   KITSUMIX DESIGN SYSTEM (VANILLA CSS)
+   Japanese Kitsune Aesthetic - Deep Cyber Navy, Royal Blue & Neon Cyan
    ========================================================================== */
 
 :root {
-  --bg-primary: #0b0c10;
-  --bg-surface: #131622;
-  --bg-surface-hover: #1b1f30;
-  --bg-elevated: #22273d;
-  --bg-overlay: rgba(11, 12, 16, 0.88);
+  /* Palette directly from theme reference */
+  --color-dark-royal: #000675;
+  --color-navy: #04044a;
+  --color-panel: #0052ff;
+  --color-sky-blue: #00a4ff;
+  --color-neon-blue: #00e7ff;
+  --color-white: #ffffff;
 
-  --border-subtle: rgba(255, 255, 255, 0.08);
-  --border-medium: rgba(255, 255, 255, 0.16);
-  --border-focus: #ff4655;
+  /* Surfaces & Backgrounds */
+  --bg-primary: #020216;
+  --bg-surface: #04044a;
+  --bg-surface-hover: #070963;
+  --bg-elevated: #000675;
+  --bg-overlay: rgba(2, 2, 22, 0.88);
 
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
-  --text-highlight: #ffffff;
+  /* Borders */
+  --border-subtle: rgba(0, 164, 255, 0.15);
+  --border-medium: rgba(0, 231, 255, 0.28);
+  --border-focus: #00e7ff;
 
-  --accent-red: #ff4655;
-  --accent-red-hover: #e03544;
-  --accent-red-light: rgba(255, 70, 85, 0.12);
-  --accent-blue: #3b82f6;
-  --accent-blue-hover: #2563eb;
-  --accent-blue-light: rgba(59, 130, 246, 0.12);
-  --accent-gold: #f59e0b;
+  /* Typography */
+  --text-primary: #ffffff;
+  --text-secondary: #98b7ea;
+  --text-muted: #56729e;
+  --text-highlight: #00e7ff;
 
-  --badge-manga: #e11d48;
-  --badge-manhwa: #6366f1;
-  --badge-manhua: #d97706;
+  /* Accents & Brand Tones */
+  --accent-red: #00e7ff;              /* Primary neon highlight */
+  --accent-red-hover: #00a4ff;        /* Secondary sky blue */
+  --accent-red-light: rgba(0, 231, 255, 0.14);
+  --accent-blue: #0052ff;             /* Vibrant panel blue */
+  --accent-blue-hover: #0038ff;
+  --accent-blue-light: rgba(0, 82, 255, 0.18);
+  --accent-gold: #38bdf8;
+
+  /* Type Badges */
+  --badge-manga: #00e7ff;
+  --badge-manhwa: #00a4ff;
+  --badge-manhua: #60a5fa;
 
   --font-main: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
@@ -39,9 +52,10 @@
   --radius-md: 12px;
   --radius-lg: 18px;
 
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.35);
-  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.5);
-  --shadow-lg: 0 16px 36px rgba(0, 0, 0, 0.65);
+  --shadow-sm: 0 2px 10px rgba(0, 4, 74, 0.45);
+  --shadow-md: 0 8px 24px rgba(0, 6, 117, 0.4);
+  --shadow-lg: 0 16px 36px rgba(0, 4, 74, 0.65);
+  --shadow-glow: 0 0 20px rgba(0, 231, 255, 0.35);
 
   --max-width: 1360px;
   --header-height: 64px;
@@ -69,6 +83,11 @@ body {
   flex-direction: column;
   overflow-x: hidden;
   background-color: var(--bg-primary);
+  background-image: 
+    radial-gradient(ellipse 70% 45% at 15% 0%, rgba(0, 164, 255, 0.14) 0%, transparent 65%),
+    radial-gradient(ellipse 60% 40% at 85% 100%, rgba(0, 231, 255, 0.10) 0%, transparent 60%),
+    radial-gradient(circle at 50% 50%, rgba(0, 6, 117, 0.25) 0%, transparent 100%);
+  background-attachment: fixed;
 }
 
 /* Custom Scrollbars */
@@ -80,11 +99,12 @@ body {
   background: var(--bg-primary);
 }
 ::-webkit-scrollbar-thumb {
-  background: #272d42;
+  background: #04044a;
+  border: 1px solid rgba(0, 164, 255, 0.25);
   border-radius: var(--radius-xs);
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #3b425f;
+  background: #000675;
 }
 
 /* Layout Container */
@@ -130,27 +150,27 @@ img {
 }
 
 .badge-manga {
-  background: rgba(225, 29, 72, 0.2);
-  color: #fb7185;
-  border: 1px solid rgba(225, 29, 72, 0.4);
+  background: rgba(0, 231, 255, 0.18);
+  color: #00e7ff;
+  border: 1px solid rgba(0, 231, 255, 0.45);
 }
 
 .badge-manhwa {
-  background: rgba(99, 102, 241, 0.2);
-  color: #a5b4fc;
-  border: 1px solid rgba(99, 102, 241, 0.4);
+  background: rgba(0, 164, 255, 0.18);
+  color: #38bdf8;
+  border: 1px solid rgba(0, 164, 255, 0.45);
 }
 
 .badge-manhua {
-  background: rgba(217, 119, 6, 0.2);
-  color: #fcd34d;
-  border: 1px solid rgba(217, 119, 6, 0.4);
+  background: rgba(0, 82, 255, 0.2);
+  color: #93c5fd;
+  border: 1px solid rgba(0, 82, 255, 0.45);
 }
 
 .badge-status {
-  background: rgba(59, 130, 246, 0.15);
-  color: #93c5fd;
-  border: 1px solid rgba(59, 130, 246, 0.3);
+  background: rgba(0, 231, 255, 0.14);
+  color: #00e7ff;
+  border: 1px solid rgba(0, 231, 255, 0.3);
 }
 
 /* Buttons */
@@ -161,19 +181,21 @@ img {
   gap: 0.5rem;
   padding: 0.65rem 1.25rem;
   border-radius: var(--radius-sm);
-  font-weight: 600;
+  font-weight: 700;
   font-size: 0.9rem;
   transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   white-space: nowrap;
 }
 
 .btn-primary {
-  background: var(--accent-red);
-  color: #ffffff;
-  box-shadow: 0 4px 14px rgba(255, 70, 85, 0.35);
+  background: linear-gradient(135deg, #00e7ff 0%, #00a4ff 50%, #0052ff 100%);
+  color: #020216;
+  font-weight: 800;
+  box-shadow: 0 4px 16px rgba(0, 231, 255, 0.38);
 }
 .btn-primary:hover {
-  background: var(--accent-red-hover);
+  background: linear-gradient(135deg, #33eeff 0%, #1ab1ff 50%, #1a65ff 100%);
+  box-shadow: 0 6px 22px rgba(0, 231, 255, 0.55);
   transform: translateY(-1px);
 }
 
@@ -190,9 +212,11 @@ img {
 .btn-blue {
   background: var(--accent-blue);
   color: #ffffff;
+  box-shadow: 0 4px 14px rgba(0, 82, 255, 0.4);
 }
 .btn-blue:hover {
   background: var(--accent-blue-hover);
+  transform: translateY(-1px);
 }
 
 .btn-ghost {
@@ -219,7 +243,7 @@ img {
 }
 
 .skeleton {
-  background: linear-gradient(90deg, #161a29 25%, #232940 50%, #161a29 75%);
+  background: linear-gradient(90deg, #04044a 25%, #000675 50%, #04044a 75%);
   background-size: 200% 100%;
   animation: skeleton-shimmer 1.8s infinite;
   border-radius: var(--radius-sm);
@@ -259,6 +283,7 @@ img {
 }
 .section-more-link:hover {
   text-decoration: underline;
+  color: var(--accent-red-hover);
 }
 
 /* Card Grids */

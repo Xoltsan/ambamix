@@ -1,6 +1,6 @@
-# ⚡ AmbaMix - VoraToon Comic Reader & REST API
+# 🦊 KitsuMix - Kitsune Manga Reader & REST API
 
-**AmbaMix** adalah aplikasi pembaca komik (Manga, Manhwa, Manhua) modern berbahasa Indonesia dan REST API lengkap yang terhubung langsung dengan sumber data **[VoraToon](https://v10.voratoon.com)** (`https://api.voratoon.com`).
+**KitsuMix** adalah aplikasi pembaca komik (Manga, Manhwa, Manhua) modern berbahasa Indonesia dan REST API lengkap yang terhubung langsung dengan sumber data **[VoraToon](https://v10.voratoon.com)** (`https://api.voratoon.com`). Mengusung tema visual Kitsune Jepang modern dengan palet warna cyber navy, dark royal blue, dan neon cyan.
 
 Dibuat dengan arsitektur fullstack:
 - **Backend API**: Node.js & Express dengan Cheerio & Axios web scraping teroptimasi serta image proxy berkecepatan tinggi.

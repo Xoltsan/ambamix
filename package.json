@@ -1,7 +1,7 @@
 {
-  "name": "ambamix",
+  "name": "kitsumix",
   "version": "1.0.0",
-  "description": "AmbaMix - Komiku.org Comic Reader & REST API",
+  "description": "KitsuMix - Modern Kitsune Japanese Comic Reader & REST API",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

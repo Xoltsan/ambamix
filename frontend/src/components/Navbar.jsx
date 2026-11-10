@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Search, Bookmark, History, Compass, Menu, X, BookOpen, Flame } from 'lucide-react';
+import KitsuLogo from './KitsuLogo';
 
 export default function Navbar() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -92,49 +93,33 @@ export default function Navbar() {
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '0.5rem',
+            gap: '0.65rem',
             textDecoration: 'none'
           }}
         >
-          <div
-            style={{
-              width: '36px',
-              height: '36px',
-              borderRadius: 'var(--radius-sm)',
-              background: 'var(--accent-red)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#fff',
-              fontWeight: 900,
-              fontSize: '1.25rem',
-              boxShadow: '0 4px 12px rgba(255, 70, 85, 0.4)'
-            }}
-          >
-            A
-          </div>
+          <KitsuLogo size={36} />
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             <span
               style={{
-                fontSize: '1.2rem',
+                fontSize: '1.25rem',
                 fontWeight: 800,
-                letterSpacing: '-0.03em',
+                letterSpacing: '-0.02em',
                 color: '#fff',
                 lineHeight: 1.1
               }}
             >
-              Amba<span style={{ color: 'var(--accent-red)' }}>Mix</span>
+              Kitsu<span style={{ color: 'var(--accent-red)' }}>Mix</span>
             </span>
             <span
               style={{
                 fontSize: '0.62rem',
                 fontWeight: 600,
-                color: 'var(--text-muted)',
+                color: 'var(--text-secondary)',
                 letterSpacing: '0.08em',
                 textTransform: 'uppercase'
               }}
             >
-              VoraToon Reader
+              Kitsune Manga Reader
             </span>
           </div>
         </Link>

@@ -5,7 +5,7 @@ const BookmarkContext = createContext();
 export function BookmarkProvider({ children }) {
   const [bookmarks, setBookmarks] = useState(() => {
     try {
-      const saved = localStorage.getItem('ambamix_bookmarks');
+      const saved = localStorage.getItem('kitsumix_bookmarks') || localStorage.getItem('ambamix_bookmarks');
       return saved ? JSON.parse(saved) : [];
     } catch {
       return [];
@@ -14,7 +14,7 @@ export function BookmarkProvider({ children }) {
 
   const [history, setHistory] = useState(() => {
     try {
-      const saved = localStorage.getItem('ambamix_history');
+      const saved = localStorage.getItem('kitsumix_history') || localStorage.getItem('ambamix_history');
       return saved ? JSON.parse(saved) : [];
     } catch {
       return [];
@@ -23,6 +23,7 @@ export function BookmarkProvider({ children }) {
 
   useEffect(() => {
     try {
+      localStorage.setItem('kitsumix_bookmarks', JSON.stringify(bookmarks));
       localStorage.setItem('ambamix_bookmarks', JSON.stringify(bookmarks));
     } catch (e) {
       console.error('Failed to save bookmarks', e);
@@ -31,6 +32,7 @@ export function BookmarkProvider({ children }) {
 
   useEffect(() => {
     try {
+      localStorage.setItem('kitsumix_history', JSON.stringify(history));
       localStorage.setItem('ambamix_history', JSON.stringify(history));
     } catch (e) {
       console.error('Failed to save history', e);
