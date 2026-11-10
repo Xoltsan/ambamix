@@ -147,12 +147,10 @@ npm run dev
 
 Buka terminal kedua untuk menjalankan Vite dev server frontend:
 ```bash
+```
+Buka browser di **`http://localhost:5174`** (Vite otomatis mem-proxy request `/api` ke backend di port 3800).
 
 ## ⚠️ Catatan Edukasi & Disclaimer
 
 Proyek ini dibuat murni untuk tujuan riset, pembelajaran reverse engineering, analisis keamanan jaringan, dan interoperabilitas perangkat lunak. Konten hak cipta dimiliki sepenuhnya oleh pemegang hak cipta masing-masing.
 
-cd ambamix/frontend
-npm run dev
-```
-Buka browser di **`http://localhost:5174`** (Vite otomatis mem-proxy request `/api` ke backend di port 3800).
