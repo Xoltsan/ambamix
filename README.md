@@ -147,6 +147,11 @@ npm run dev
 
 Buka terminal kedua untuk menjalankan Vite dev server frontend:
 ```bash
+
+## ⚠️ Catatan Edukasi & Disclaimer
+
+Proyek ini dibuat murni untuk tujuan riset, pembelajaran reverse engineering, analisis keamanan jaringan, dan interoperabilitas perangkat lunak. Konten hak cipta dimiliki sepenuhnya oleh pemegang hak cipta masing-masing.
+
 cd ambamix/frontend
 npm run dev
 ```
