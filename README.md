@@ -147,8 +147,8 @@ npm run dev
 
 Buka terminal kedua untuk menjalankan Vite dev server frontend:
 ```bash
-```
 Buka browser di **`http://localhost:5174`** (Vite otomatis mem-proxy request `/api` ke backend di port 3800).
+```
 
 ## ⚠️ Catatan Edukasi & Disclaimer
 
